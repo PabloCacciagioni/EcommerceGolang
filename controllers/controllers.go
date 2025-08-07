@@ -9,6 +9,7 @@ import (
 
 	"github.com/PabloCacciagioni/EcommerceGolang/database"
 	"github.com/PabloCacciagioni/EcommerceGolang/models"
+	generate "github.com/PabloCacciagioni/EcommerceGolang/token"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"go.mongodb.org/mongo-driver/bson"
