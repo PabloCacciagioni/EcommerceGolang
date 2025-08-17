@@ -1,13 +1,17 @@
 package token
 
 import (
+	"context"
 	"log"
 	"os"
 	"time"
 
 	"github.com/PabloCacciagioni/EcommerceGolang/database"
 	jwt "github.com/dgrijalva/jwt-go"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type SignedDetails struct {
@@ -51,25 +55,24 @@ func TokenGenerator(email string, fistname string, lastname string, uid string) 
 }
 
 func ValidateToken(signedtoken string) (claims *SignedDetails, msg string) {
-	token, err := jwt.ParseWithClaims(signedtoken, &SignedDetails{}, func(token *jwt.Token)(interface{}, error){
+	token, err := jwt.ParseWithClaims(signedtoken, &SignedDetails{}, func(token *jwt.Token) (interface{}, error) {
 		return []byte(SECRET_KEY), nil
-	}) 
+	})
 	if err != nil {
 		msg = err.Error()
-		return 
+		return
 	}
 	claims, ok := token.Claims.(*SignedDetails)
 	if !ok {
 		msg = "The token is invalid"
 		return
 	}
-	claims.ExpiresAt < time.Now().Local().Unix(){
+	if claims.ExpiresAt < time.Now().Local().Unix() {
 		msg = "token is already expired"
 		return
 	}
 	return claims, msg
 }
-
 
 func UpdateAllTokens(signedtoken string, signedrefreshtoken string, userid string) {
 	var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
@@ -84,7 +87,7 @@ func UpdateAllTokens(signedtoken string, signedrefreshtoken string, userid strin
 	opt := options.UpdateOptions{
 		Upsert: &upsert,
 	}
-	_,err := UserData.UpdateOne(ctx, filter, bson.D{
+	_, err := UserData.UpdateOne(ctx, filter, bson.D{
 		{Key: "$set", Value: updateobj},
 	}, &opt)
 	defer cancel()
