@@ -18,8 +18,8 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-var UserCollection *mongo.Collection = database.UserData(database.Client, "users")
-var ProductCollection *mongo.Collection = database.ProductData(database.Client, "products")
+var UserCollection *mongo.Collection = database.UserData(database.Client, "Users")
+var ProductCollection *mongo.Collection = database.ProductData(database.Client, "Products")
 var Validate = validator.New()
 
 func HashPassword(password string) string {
@@ -48,7 +48,7 @@ func Signup() gin.HandlerFunc {
 
 		var user models.User
 		if err := c.BindJSON(&user); err != nil {
-			c.JSON{http.StatusBadRequest, gin.H{"error": err.Error()}}
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 		validationErr := Validate.Struct(user)
@@ -87,9 +87,9 @@ func Signup() gin.HandlerFunc {
 		user.Updated_At, _ = time.Parse(time.RFC3339, time.Now().Format(time.RFC3339))
 		user.ID = primitive.NewObjectID()
 		user.User_ID = user.ID.Hex()
-		token, refreshToken, _ := generate.TokenGenerator(*user.First_Name, *user.Last_Name, *user.Email, *user.User_ID)
+		token, refreshtoken, _ := generate.TokenGenerator(*user.First_Name, *user.Last_Name, *user.Email, user.User_ID)
 		user.Token = &token
-		user.Refresh_Token = &refreshToken
+		user.Refresh_Token = &refreshtoken
 		user.UserCart = make([]models.ProductUser, 0)
 		user.Address_Details = make([]models.Address, 0)
 		user.Order_Status = make([]models.Order, 0)
@@ -115,7 +115,8 @@ func Login() gin.HandlerFunc {
 			return
 		}
 
-		UserCollection.FindOne(ctx, bson.M{"email": user.Email}).Decode(&founduser)
+		var founduser models.User
+		err := UserCollection.FindOne(ctx, bson.M{"email": *user.Email}).Decode(&founduser)
 		defer cancel()
 
 		if err != nil {
@@ -132,15 +133,11 @@ func Login() gin.HandlerFunc {
 			return
 		}
 
-		token, refreshToken, _ := generate.TokenGenerator(*founderuser.Email, *founderuser.First_Name, *founderuser.Last_Name, founderuser.User_ID)
+		token, refreshToken, _ := generate.TokenGenerator(*founduser.Email, *founduser.First_Name, *founduser.Last_Name, founduser.User_ID)
 		defer cancel()
 
-		generate.UpdateAllTokens(token, refreshToken, founderuser.User_ID)
+		generate.UpdateAllTokens(token, refreshToken, founduser.User_ID)
 	}
-}
-
-func ProductViewerAdmin() gin.HandlerFunc {
-
 }
 
 func SearchProduct() gin.HandlerFunc {
@@ -163,8 +160,8 @@ func SearchProduct() gin.HandlerFunc {
 			return
 		}
 
-		defer cursor.Close()
-		if err := cursor.err(); err != nil {
+		defer cursor.Close(ctx)
+		if err := cursor.Err(); err != nil {
 			log.Println(err)
 			c.IndentedJSON(400, "invalid")
 			return
@@ -182,7 +179,7 @@ func SearchProductByQuery() gin.HandlerFunc {
 		if queryParam == "" {
 			log.Println("Query parameter is empty")
 			c.Header("Content-Type", "application/json")
-			c.JSON(HTTP.StatusNotFound, gin.H{"error": "Invalid search index"})
+			c.JSON(http.StatusNotFound, gin.H{"error": "Invalid search index"})
 			c.Abort()
 			return
 		}
