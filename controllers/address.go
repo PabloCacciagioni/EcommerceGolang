@@ -64,7 +64,6 @@ func AddAdress() gin.HandlerFunc {
 		defer cancel()
 		ctx.Done()
 	}
-
 }
 
 func EditHomeAdress() gin.HandlerFunc {
