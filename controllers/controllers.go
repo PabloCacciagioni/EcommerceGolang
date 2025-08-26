@@ -140,6 +140,10 @@ func Login() gin.HandlerFunc {
 	}
 }
 
+func ProductViewerAdmin() gin.HandlerFunc {
+
+}
+
 func SearchProduct() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var productList []models.Product
